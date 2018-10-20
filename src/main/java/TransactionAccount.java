@@ -1,18 +1,38 @@
-public class TransactionAccount {
-    private int currency;
-    private int history;
+import java.util.*;
+
+protected class TransactionAccount {
+    private float currency;
+    private List<String> history = Collections.synchronizedList(new ArrayList<String>());
+    private final Object lock = new Object();
+
+
     public TransactionAccount(int amount) {
         if (amount < 0) {
             currency = amount;
         }
     }
 
-    //Returns a 1 if withdrawal was a success
-    public int Withdrawal(int amount) {
-        return 1;
+    public List<String> iterateHistory(int numHistory) {
+        synchronized(history) {
+
+
+        }
     }
 
-    public void Deposit(int amount) {
+    //Returns a -1 if failure, positive number if possible
+    public int Withdrawal(float amount) {
+        synchronized(lock) {
+        
+        }
+        return -1;
+    }
+
+
+    public void Deposit(float amount) {
+
 
     }
+
+
+
 }
