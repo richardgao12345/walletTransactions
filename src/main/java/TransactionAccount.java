@@ -4,8 +4,7 @@ import java.math.RoundingMode;
 import java.util.*;
 
 public class TransactionAccount {
-    private MathContext mc = new MathContext(2, RoundingMode.HALF_DOWN);
-    private BigDecimal accountMoney = new BigDecimal(0.00, mc);
+    private BigDecimal accountMoney = new BigDecimal(0.00).setScale(2, RoundingMode.HALF_DOWN);
     private List<String> history = Collections.synchronizedList(new ArrayList<String>());
     private final Object lock = new Object();
 
@@ -46,7 +45,7 @@ public class TransactionAccount {
             if(accountMoney.doubleValue() - amount < 0.00) {
                 return -1;
             }
-            accountMoney.subtract(new BigDecimal(amount), mc);
+            accountMoney = accountMoney.subtract(new BigDecimal(amount)).setScale(2, RoundingMode.HALF_DOWN);
             String message = "Withdrawal-" + Double.toString(amount);
             history.add(TransactionID.getTransactionInfo(message));
             return 0;
@@ -60,8 +59,8 @@ public class TransactionAccount {
      */
     public void deposit(double amount) {
         synchronized(lock) {
-            accountMoney.add(new BigDecimal(amount), mc);
-            String message = "Deposity-" + Double.toString(amount);
+            accountMoney = accountMoney.add(new BigDecimal(amount)).setScale(2, RoundingMode.HALF_DOWN);
+            String message = "Deposit-" + Double.toString(amount);
             history.add(TransactionID.getTransactionInfo(message));
         }
     }
@@ -79,12 +78,25 @@ public class TransactionAccount {
 
     /**
      * This method adds a history to the account
-     * @param message is the amount you want to deposit
      * @return double
      */
-    public double getAmount(String message) {
+    public double getAmount() {
        return accountMoney.doubleValue();
     }
 
+
+    public int transfer(TransactionAccount account, double amount) {
+        synchronized(lock) {
+            if(accountMoney.doubleValue() - amount < 0.00) {
+                return -1;
+            }
+            accountMoney = accountMoney.subtract(new BigDecimal(amount)).setScale(2, RoundingMode.HALF_DOWN);
+            account.deposit(amount);
+            String message = "Transfer" + Double.toString(amount);
+            history.add(TransactionID.getTransactionInfo(message));
+
+            return 0;
+        }
+    }
 
 }

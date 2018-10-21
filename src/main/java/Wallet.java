@@ -1,5 +1,3 @@
-import org.graalvm.compiler.lir.alloc.trace.lsra.TraceLinearScanLifetimeAnalysisPhase;
-
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +21,7 @@ public class Wallet {
     public String createTransactionAccount() {
         String transactionAccount = TransactionID.getTransactionAccount();
 
-        if (transactionAccounts.putIfAbsent(transactionAccount, new TransactionAccount()) != null) {
+        if (transactionAccounts.putIfAbsent(transactionAccount, new TransactionAccount()) == null) {
             return transactionAccount;
         }
         else {
@@ -51,10 +49,10 @@ public class Wallet {
      * This method withdraws money from a transaction account
      * @param account is transaction account ID
      * @param amount is the amount to withdraw
-     * @return int, returns 0 on success, -1 on no account found, throws an exception on a withdrawal issue
+     * @return int, returns 0 on success, throws an exception on a withdrawal issue or no account found
      */
 
-    public int withdrawMoney(TransactionAccount account, double amount) throws InvalidAmount {
+    public int withdrawMoney(String account, double amount) throws InvalidAmount, NoAccount {
         if (amount < 0) {
             throw new InvalidAmount("You withdrew a negative amount");
         }
@@ -65,7 +63,7 @@ public class Wallet {
                 }
                 return 0;
             }
-            return -1;
+            throw new NoAccount("No transaction account for given key");
         }
     }
 
@@ -73,18 +71,18 @@ public class Wallet {
      * This method deposits money into a transaction account
      * @param account is transaction account ID
      * @param amount is the amount to deposit
-     * @return int, returns 0 on success, -1 on no account found, throws an exception on a deposit issue
+     * @return int, returns 0 on success, throws an exception on a deposit issue or no account found
      */
-    public int depositMoney(TransactionAccount account, double amount) throws InvalidAmount {
-        if (invalidAmount(amount)) {
+    public double depositMoney(String account, double amount) throws InvalidAmount, NoAccount {
+        if (amount < 0) {
             throw new InvalidAmount("You deposited a negative amount");
         }
         synchronized (transactionAccounts) {
             if(transactionAccounts.containsKey(account)) {
                 transactionAccounts.get(account).deposit(amount);
-                return 0;
+                return transactionAccounts.get(account).getAmount();
             }
-            return -1;
+            throw new NoAccount("No transaction account for given key");
         }
     }
 
@@ -93,9 +91,9 @@ public class Wallet {
      * @param accountWithdraw is transaction account ID to withdraw from
      * @param accountDeposit is transaction account ID to deposit in
      * @param amount is how much you're withdrawing/depositing
-     * @return int, returns 0 on success, -1 on no account found, throws an exception on a withdrawal amount issue
+     * @return int, returns 0 on success, throws an exception on a withdrawal amount issue or no account found
      */
-    public int transferMoney(TransactionAccount accountWithdraw, TransactionAccount accountDeposit, double amount) throws InvalidAmount{
+    public int transferMoney(String accountWithdraw, String accountDeposit, double amount) throws InvalidAmount, NoAccount{
         if (amount < 0) {
             throw new InvalidAmount("You deposited a negative amount");
         }
@@ -107,7 +105,7 @@ public class Wallet {
                 transactionAccounts.get(accountDeposit).deposit(amount);
                 return 0;
             }
-            return -1;
+            throw new NoAccount("No transaction account for given key");
 
         }
     }
@@ -116,9 +114,9 @@ public class Wallet {
      * This method deposits money into a transaction account
      * @param account is transaction account ID
      * @param recent is how many history entries you want to see
-     * @return ArrayList<String>, returns a list of the history, null if key not found, history will be empty if N error
+     * @return ArrayList<String>, returns a list of the history, null if key not found, history will be empty if account error
      */
-    public ArrayList<String> getHistory(TransactionAccount account, int recent) throws InvalidAmount{
+    public ArrayList<String> getHistory(String account, int recent) throws InvalidAmount, NoAccount{
         if (recent < 0) {
             throw new InvalidAmount("You put in a negative number for recency");
         }
@@ -127,7 +125,23 @@ public class Wallet {
                 ArrayList<String> history = transactionAccounts.get(account).getHistory(recent);
                 return history;
             }
-            return null;
+            throw new NoAccount("No transaction account for given key");
+        }
+    }
+
+    /**
+     * This method gets the current amount of money in the transaction account
+     * @param account is transaction account ID
+     * @return double amount of money, throws exception if not found
+     */
+    public double getMoney(String account) throws NoAccount{
+
+        synchronized (transactionAccounts) {
+            if(transactionAccounts.containsKey(account)) {
+                return transactionAccounts.get(account).getAmount();
+            }
+            throw new NoAccount("No transaction account for given key");
+
         }
     }
 }
